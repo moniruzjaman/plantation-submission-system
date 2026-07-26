@@ -1,0 +1,11 @@
+{
+  "name": "Plantation Submission System",
+  "description": "Government and institutional tree plantation recording, monitoring, and validation system with offline-first capabilities, interactive maps, and geo-fencing validation engine.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
