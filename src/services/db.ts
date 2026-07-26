@@ -368,6 +368,46 @@ class IndexedDBService {
       }
     }
   }
+
+  public async syncAllToFirebase(): Promise<{ success: boolean; count: number; error?: string }> {
+    try {
+      const { db } = await import('./firebase');
+      const { doc, setDoc } = await import('firebase/firestore');
+
+      const syncMapping = [
+        { store: STORE_USERS, coll: 'users', key: 'user_id' },
+        { store: STORE_SPECIES, coll: 'species', key: 'species_id' },
+        { store: STORE_GEOFENCES, coll: 'geofences', key: 'geofence_id' },
+        { store: STORE_PLANT_PHOTOS, coll: 'plant_photos', key: 'photo_id' },
+        { store: STORE_VALIDATION_TASKS, coll: 'validation_tasks', key: 'task_id' },
+        { store: STORE_INSPECTIONS, coll: 'inspections', key: 'inspection_id' },
+        { store: STORE_NDVI_HISTORY, coll: 'ndvi_history', key: 'history_id' },
+        { store: STORE_CARBON_HISTORY, coll: 'carbon_history', key: 'history_id' },
+        { store: STORE_NOTIFICATIONS, coll: 'notifications', key: 'notification_id' },
+        { store: STORE_AUDIT_LOGS, coll: 'audit_logs', key: 'log_id' },
+        { store: STORE_SUBMISSIONS, coll: 'submissions', key: 'submission_id' }
+      ];
+
+      let totalCount = 0;
+      for (const map of syncMapping) {
+        const items = await this.getAllItems<any>(map.store);
+        for (const item of items) {
+          const docId = item[map.key];
+          if (docId) {
+            // Clean undefined fields or nested maps for firestore compatibility
+            const cleanItem = JSON.parse(JSON.stringify(item));
+            await setDoc(doc(db, map.coll, docId), cleanItem);
+            totalCount++;
+          }
+        }
+      }
+
+      return { success: true, count: totalCount };
+    } catch (err: any) {
+      console.error('Firebase sync error:', err);
+      return { success: false, count: 0, error: err.message };
+    }
+  }
 }
 
 export const dbService = new IndexedDBService();

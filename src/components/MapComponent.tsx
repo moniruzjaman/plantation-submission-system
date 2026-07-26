@@ -298,6 +298,33 @@ export default function MapComponent({
 
       return () => {
         resizeObserver.disconnect();
+        
+        // Safely remove any active layers before map is removed
+        if (circleRef.current) {
+          if (map.hasLayer(circleRef.current)) {
+            circleRef.current.remove();
+          }
+          circleRef.current = null;
+        }
+        if (polygonRef.current) {
+          if (map.hasLayer(polygonRef.current)) {
+            polygonRef.current.remove();
+          }
+          polygonRef.current = null;
+        }
+        if (markerRef.current) {
+          if (map.hasLayer(markerRef.current)) {
+            markerRef.current.remove();
+          }
+          markerRef.current = null;
+        }
+        tempMarkersRef.current.forEach((m) => {
+          if (map.hasLayer(m)) {
+            m.remove();
+          }
+        });
+        tempMarkersRef.current = [];
+
         map.remove();
         mapRef.current = null;
       };
@@ -344,15 +371,19 @@ export default function MapComponent({
     }).addTo(map);
     markerRef.current = marker;
 
-    // Handle marker drag end
+    // Handle marker drag end with safe event loop deferral to let Leaflet cleanly complete the drag lifecycle
     marker.on('dragend', () => {
       const pos = marker.getLatLng();
-      onChange({
-        latitude: parseFloat(pos.lat.toFixed(7)),
-        longitude: parseFloat(pos.lng.toFixed(7)),
-        radius: radiusRef.current,
-        polygon: drawNodesRef.current.length > 0 ? drawNodesRef.current : null,
-      });
+      setTimeout(() => {
+        if (mapRef.current && markerRef.current && mapRef.current.hasLayer(markerRef.current)) {
+          onChange({
+            latitude: parseFloat(pos.lat.toFixed(7)),
+            longitude: parseFloat(pos.lng.toFixed(7)),
+            radius: radiusRef.current,
+            polygon: drawNodesRef.current.length > 0 ? drawNodesRef.current : null,
+          });
+        }
+      }, 0);
     });
 
     // Bind map click helper for Polygon Drawing
@@ -388,31 +419,63 @@ export default function MapComponent({
 
     return () => {
       resizeObserver.disconnect();
+      
+      // Safely remove any active layers before map is removed
+      if (circleRef.current) {
+        if (map.hasLayer(circleRef.current)) {
+          circleRef.current.remove();
+        }
+        circleRef.current = null;
+      }
+      if (polygonRef.current) {
+        if (map.hasLayer(polygonRef.current)) {
+          polygonRef.current.remove();
+        }
+        polygonRef.current = null;
+      }
+      if (markerRef.current) {
+        if (map.hasLayer(markerRef.current)) {
+          markerRef.current.remove();
+        }
+        markerRef.current = null;
+      }
+      tempMarkersRef.current.forEach((m) => {
+        if (map.hasLayer(m)) {
+          m.remove();
+        }
+      });
+      tempMarkersRef.current = [];
+
       map.remove();
       mapRef.current = null;
     };
   }, [allSubmissions]);
 
-  // 3. Keep Center & Marker updated when props change from reverse lookup or manual entry
+  // 3. Keep Center & Marker updated when props change from reverse lookup or manual entry, with robust validation that layer is active
   useEffect(() => {
     if (allSubmissions) return;
-    if (!mapRef.current || !markerRef.current) return;
+    const map = mapRef.current;
+    const marker = markerRef.current;
+    if (!map || !marker || !map.hasLayer(marker)) return;
 
-    const currentMarkerLatLng = markerRef.current.getLatLng();
+    const currentMarkerLatLng = marker.getLatLng();
     if (currentMarkerLatLng.lat !== latitude || currentMarkerLatLng.lng !== longitude) {
-      markerRef.current.setLatLng([latitude, longitude]);
-      mapRef.current.setView([latitude, longitude], mapRef.current.getZoom());
+      marker.setLatLng([latitude, longitude]);
+      map.setView([latitude, longitude], map.getZoom());
     }
   }, [latitude, longitude, allSubmissions]);
 
   // 4. Update Circle Overlays for Small Plantations (Radius)
   useEffect(() => {
     if (allSubmissions) return;
-    if (!mapRef.current || !markerRef.current) return;
+    const map = mapRef.current;
+    if (!map || !markerRef.current) return;
 
     // Clean old circle
     if (circleRef.current) {
-      circleRef.current.remove();
+      if (map.hasLayer(circleRef.current)) {
+        circleRef.current.remove();
+      }
       circleRef.current = null;
     }
 
@@ -423,8 +486,17 @@ export default function MapComponent({
         fillColor: '#10B981',
         fillOpacity: 0.15,
         weight: 2,
-      }).addTo(mapRef.current);
+      }).addTo(map);
     }
+
+    return () => {
+      if (circleRef.current) {
+        if (mapRef.current && mapRef.current.hasLayer(circleRef.current)) {
+          circleRef.current.remove();
+        }
+        circleRef.current = null;
+      }
+    };
   }, [latitude, longitude, radius, plantationType, allSubmissions]);
 
   // 5. Update Polygon overlays and draw markers with dynamic Vertex Dragging
@@ -435,12 +507,18 @@ export default function MapComponent({
 
     // Clean old polygon
     if (polygonRef.current) {
-      polygonRef.current.remove();
+      if (map.hasLayer(polygonRef.current)) {
+        polygonRef.current.remove();
+      }
       polygonRef.current = null;
     }
 
     // Clean temporary node markers
-    tempMarkersRef.current.forEach((m) => m.remove());
+    tempMarkersRef.current.forEach((m) => {
+      if (map.hasLayer(m)) {
+        m.remove();
+      }
+    });
     tempMarkersRef.current = [];
 
     setDrawNodes(polygon || []);
@@ -500,7 +578,7 @@ export default function MapComponent({
           }
         });
 
-        // Trigger parent change only on drag end to prevent interrupting/cancelling active dragging gestures
+        // Trigger parent change only on drag end with event loop deferral to prevent interrupting/cancelling active dragging gestures
         m.on('dragend', (e: L.LeafletEvent) => {
           const target = e.target as L.Marker;
           const pos = target.getLatLng();
@@ -514,17 +592,36 @@ export default function MapComponent({
           drawNodesRef.current = nextPolygon;
           setDrawNodes(nextPolygon);
 
-          onChange({
-            latitude: latRef.current,
-            longitude: lngRef.current,
-            radius: radiusRef.current,
-            polygon: nextPolygon,
-          });
+          setTimeout(() => {
+            if (mapRef.current) {
+              onChange({
+                latitude: latRef.current,
+                longitude: lngRef.current,
+                radius: radiusRef.current,
+                polygon: nextPolygon,
+              });
+            }
+          }, 0);
         });
 
         tempMarkersRef.current.push(m);
       });
     }
+
+    return () => {
+      if (polygonRef.current) {
+        if (mapRef.current && mapRef.current.hasLayer(polygonRef.current)) {
+          polygonRef.current.remove();
+        }
+        polygonRef.current = null;
+      }
+      tempMarkersRef.current.forEach((m) => {
+        if (mapRef.current && mapRef.current.hasLayer(m)) {
+          m.remove();
+        }
+      });
+      tempMarkersRef.current = [];
+    };
   }, [polygon, plantationType]);
 
   const clearPolygon = () => {

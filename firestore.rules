@@ -1,0 +1,175 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Simple ID format validation function to secure document keys against injection
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 64;
+    }
+
+    // Helper to verify user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // --- Entity Validation Helper Blueprints ---
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['user_id', 'name', 'role'])
+        && data.user_id is string
+        && data.name is string
+        && data.role in ['Planter', 'Validator', 'Admin', 'Government Officer'];
+    }
+
+    function isValidSpecies(data) {
+      return data.keys().hasAll(['species_id', 'scientific_name', 'local_name', 'carbon_factor'])
+        && data.species_id is string
+        && data.scientific_name is string
+        && data.local_name is string
+        && data.carbon_factor is number;
+    }
+
+    function isValidGeoFence(data) {
+      return data.keys().hasAll(['geofence_id', 'site_id', 'area', 'type'])
+        && data.geofence_id is string
+        && data.site_id is string
+        && data.area is number
+        && data.type in ['Polygon', 'Circle', 'Point'];
+    }
+
+    function isValidPlantPhoto(data) {
+      return data.keys().hasAll(['photo_id', 'plant_id', 'file_url', 'taken_at'])
+        && data.photo_id is string
+        && data.plant_id is string
+        && data.file_url is string
+        && data.taken_at is int;
+    }
+
+    function isValidValidationTask(data) {
+      return data.keys().hasAll(['task_id', 'submission_id', 'site_id', 'validator_id', 'status'])
+        && data.task_id is string
+        && data.submission_id is string
+        && data.site_id is string
+        && data.validator_id is string
+        && data.status in ['Pending', 'In Progress', 'Completed', 'Overdue'];
+    }
+
+    function isValidInspection(data) {
+      return data.keys().hasAll(['inspection_id', 'site_id', 'inspection_date', 'inspector_id'])
+        && data.inspection_id is string
+        && data.site_id is string
+        && data.inspection_date is int
+        && data.inspector_id is string;
+    }
+
+    function isValidNDVIHistory(data) {
+      return data.keys().hasAll(['history_id', 'site_id', 'date', 'ndvi'])
+        && data.history_id is string
+        && data.site_id is string
+        && data.date is int
+        && data.ndvi is number;
+    }
+
+    function isValidCarbonHistory(data) {
+      return data.keys().hasAll(['history_id', 'site_id', 'date', 'carbon'])
+        && data.history_id is string
+        && data.site_id is string
+        && data.date is int
+        && data.carbon is number;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['notification_id', 'recipient', 'title', 'status', 'created_at'])
+        && data.notification_id is string
+        && data.recipient is string
+        && data.title is string
+        && data.status in ['Read', 'Unread']
+        && data.created_at is int;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['log_id', 'user_id', 'action', 'entity', 'timestamp'])
+        && data.log_id is string
+        && data.user_id is string
+        && data.action is string
+        && data.entity is string
+        && data.timestamp is int;
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['submission_id', 'submitted_by_id', 'submitted_at', 'status'])
+        && data.submission_id is string
+        && data.submitted_by_id is string
+        && data.submitted_at is int
+        && data.status is string;
+    }
+
+    // --- Collections Rules ---
+
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isValidId(userId) && isValidUser(request.resource.data);
+      allow delete: if false; // Users cannot be hard-deleted for auditing integrity
+    }
+
+    match /species/{speciesId} {
+      allow read: if true;
+      allow create, update: if isValidId(speciesId) && isValidSpecies(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /geofences/{geofenceId} {
+      allow read: if true;
+      allow create, update: if isValidId(geofenceId) && isValidGeoFence(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /plant_photos/{photoId} {
+      allow read: if true;
+      allow create, update: if isValidId(photoId) && isValidPlantPhoto(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /validation_tasks/{taskId} {
+      allow read: if true;
+      allow create, update: if isValidId(taskId) && isValidValidationTask(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /inspections/{inspectionId} {
+      allow read: if true;
+      allow create, update: if isValidId(inspectionId) && isValidInspection(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /ndvi_history/{historyId} {
+      allow read: if true;
+      allow create, update: if isValidId(historyId) && isValidNDVIHistory(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /carbon_history/{historyId} {
+      allow read: if true;
+      allow create, update: if isValidId(historyId) && isValidCarbonHistory(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if true;
+      allow create, update: if isValidId(notificationId) && isValidNotification(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if true;
+      allow create: if isValidId(logId) && isValidAuditLog(request.resource.data);
+      allow update, delete: if false; // Audit logs are immutable
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if true;
+      allow create, update: if isValidId(submissionId) && isValidSubmission(request.resource.data);
+      allow delete: if true;
+    }
+  }
+}

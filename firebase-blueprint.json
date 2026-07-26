@@ -1,0 +1,223 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "App user record mapping role and office assignments",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "name": { "type": "string" },
+        "office": { "type": "string" },
+        "designation": { "type": "string" },
+        "role": { "type": "string", "enum": ["Planter", "Validator", "Admin", "Government Officer"] },
+        "district": { "type": "string" },
+        "upazila": { "type": "string" },
+        "block": { "type": "string" }
+      },
+      "required": ["user_id", "name", "role"]
+    },
+    "Species": {
+      "title": "Species",
+      "description": "Tree species metadata and environmental coefficients",
+      "type": "object",
+      "properties": {
+        "species_id": { "type": "string" },
+        "category": { "type": "string" },
+        "scientific_name": { "type": "string" },
+        "local_name": { "type": "string" },
+        "carbon_factor": { "type": "number" },
+        "life_span": { "type": "integer" },
+        "recommended_spacing": { "type": "string" }
+      },
+      "required": ["species_id", "scientific_name", "local_name", "carbon_factor"]
+    },
+    "GeoFence": {
+      "title": "GeoFence",
+      "description": "Plantation site spatial boundaries and area details",
+      "type": "object",
+      "properties": {
+        "geofence_id": { "type": "string" },
+        "site_id": { "type": "string" },
+        "area": { "type": "number" },
+        "perimeter": { "type": "number" },
+        "type": { "type": "string", "enum": ["Polygon", "Circle", "Point"] },
+        "created_at": { "type": "integer" }
+      },
+      "required": ["geofence_id", "site_id", "area", "type"]
+    },
+    "PlantPhoto": {
+      "title": "PlantPhoto",
+      "description": "Image metadata of individual monitored plants",
+      "type": "object",
+      "properties": {
+        "photo_id": { "type": "string" },
+        "plant_id": { "type": "string" },
+        "file_url": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "taken_at": { "type": "integer" },
+        "device": { "type": "string" },
+        "hash": { "type": "string" }
+      },
+      "required": ["photo_id", "plant_id", "file_url", "taken_at"]
+    },
+    "ValidationTask": {
+      "title": "ValidationTask",
+      "description": "Validation workflow items assigned to inspectors",
+      "type": "object",
+      "properties": {
+        "task_id": { "type": "string" },
+        "submission_id": { "type": "string" },
+        "site_id": { "type": "string" },
+        "validator_id": { "type": "string" },
+        "validator_name": { "type": "string" },
+        "validator_role": { "type": "string" },
+        "assigned_date": { "type": "integer" },
+        "due_date": { "type": "integer" },
+        "status": { "type": "string", "enum": ["Pending", "In Progress", "Completed", "Overdue"] },
+        "remarks": { "type": "string" },
+        "approved_at": { "type": "integer" },
+        "rejected_at": { "type": "integer" }
+      },
+      "required": ["task_id", "submission_id", "site_id", "validator_id", "status"]
+    },
+    "Inspection": {
+      "title": "Inspection",
+      "description": "Foliage and survival health audit details",
+      "type": "object",
+      "properties": {
+        "inspection_id": { "type": "string" },
+        "site_id": { "type": "string" },
+        "inspection_date": { "type": "integer" },
+        "inspector_id": { "type": "string" },
+        "inspector_name": { "type": "string" },
+        "survival_count": { "type": "integer" },
+        "dead_count": { "type": "integer" },
+        "height": { "type": "number" },
+        "canopy": { "type": "number" },
+        "health_status": { "type": "string", "enum": ["Excellent", "Good", "Fair", "Poor"] },
+        "remarks": { "type": "string" }
+      },
+      "required": ["inspection_id", "site_id", "inspection_date", "inspector_id"]
+    },
+    "NDVIHistory": {
+      "title": "NDVIHistory",
+      "description": "Sentinel satellite vegetation tracking values",
+      "type": "object",
+      "properties": {
+        "history_id": { "type": "string" },
+        "site_id": { "type": "string" },
+        "date": { "type": "integer" },
+        "ndvi": { "type": "number" },
+        "source": { "type": "string" }
+      },
+      "required": ["history_id", "site_id", "date", "ndvi"]
+    },
+    "CarbonHistory": {
+      "title": "CarbonHistory",
+      "description": "Sequestration track progress for carbon credits",
+      "type": "object",
+      "properties": {
+        "history_id": { "type": "string" },
+        "site_id": { "type": "string" },
+        "date": { "type": "integer" },
+        "carbon": { "type": "number" },
+        "method": { "type": "string" }
+      },
+      "required": ["history_id", "site_id", "date", "carbon"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app alerts and task dispatch announcements",
+      "type": "object",
+      "properties": {
+        "notification_id": { "type": "string" },
+        "recipient": { "type": "string" },
+        "role": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["Read", "Unread"] },
+        "created_at": { "type": "integer" },
+        "read_at": { "type": "integer" }
+      },
+      "required": ["notification_id", "recipient", "title", "status", "created_at"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security record tracing system modifications",
+      "type": "object",
+      "properties": {
+        "log_id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "action": { "type": "string" },
+        "entity": { "type": "string" },
+        "entity_id": { "type": "string" },
+        "old_value": { "type": "string" },
+        "new_value": { "type": "string" },
+        "device": { "type": "string" },
+        "timestamp": { "type": "integer" }
+      },
+      "required": ["log_id", "user_id", "action", "entity", "timestamp"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Plantation site and tree registration application package",
+      "type": "object",
+      "properties": {
+        "submission_id": { "type": "string" },
+        "submitted_by_id": { "type": "string" },
+        "submitted_by_name": { "type": "string" },
+        "office": { "type": "string" },
+        "submitted_at": { "type": "integer" },
+        "status": { "type": "string" }
+      },
+      "required": ["submission_id", "submitted_by_id", "submitted_at", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Application users and system actors"
+    },
+    "/species/{speciesId}": {
+      "schema": "Species",
+      "description": "Vegetation species references and carbon indices"
+    },
+    "/geofences/{geofenceId}": {
+      "schema": "GeoFence",
+      "description": "Registered GIS polygons and plantation buffers"
+    },
+    "/plant_photos/{photoId}": {
+      "schema": "PlantPhoto",
+      "description": "Media capture events mapped to plant records"
+    },
+    "/validation_tasks/{taskId}": {
+      "schema": "ValidationTask",
+      "description": "Dispatched ground-truthing and satellite align jobs"
+    },
+    "/inspections/{inspectionId}": {
+      "schema": "Inspection",
+      "description": "Subsequent survival rate field check-ins"
+    },
+    "/ndvi_history/{historyId}": {
+      "schema": "NDVIHistory",
+      "description": "Sentinel-2 NDVI spectral histories"
+    },
+    "/carbon_history/{historyId}": {
+      "schema": "CarbonHistory",
+      "description": "Biomass regression histories"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Advisory briefs and approval notices"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable security logs for relational updates"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Main plantation proposals and site registries"
+    }
+  }
+}

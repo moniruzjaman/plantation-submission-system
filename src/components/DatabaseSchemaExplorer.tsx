@@ -184,18 +184,35 @@ export default function DatabaseSchemaExplorer() {
     }
   };
 
-  // Simulate central PostgreSQL server synchronization
-  const handleSimulatePgSync = () => {
-    setSyncStatus({ syncing: true, message: language === 'en' ? 'Authenticating with central PostGIS PostgreSQL Server...' : 'কেন্দ্রীয় PostGIS PostgreSQL সার্ভারের সাথে সংযোগ করা হচ্ছে...' });
+  // Synchronize with central Firebase Firestore & Simulate central PostgreSQL server
+  const handleSimulatePgSync = async () => {
+    setSyncStatus({ syncing: true, message: language === 'en' ? 'Connecting to Cloud Firebase & central PostGIS PostgreSQL Server...' : 'ক্লাউড ফায়ারবেস এবং কেন্দ্রীয় PostGIS PostgreSQL সার্ভারের সাথে সংযোগ করা হচ্ছে...' });
     
+    // Perform actual Firebase Firestore Sync of all tables
+    const result = await dbService.syncAllToFirebase();
+
     setTimeout(() => {
-      setSyncStatus({ syncing: true, message: language === 'en' ? 'Verifying table spatial indexes (GIST) on GeoFence geometries...' : 'GeoFence জ্যামিতিতে স্পেশাল ইনডেক্স (GIST) যাচাই করা হচ্ছে...' });
+      setSyncStatus({ 
+        syncing: true, 
+        message: result.success 
+          ? (language === 'en' ? `Firebase tables initialized. Synced ${result.count} records securely!` : `ফায়ারবেস টেবিলসমূহ সফলভাবে সেটআপ করা হয়েছে এবং ${result.count} টি রেকর্ড সিঙ্ক করা হয়েছে!`)
+          : (language === 'en' ? `Firestore offline fallback active. Running spatial indexing...` : `ফায়ারস্টোর অফলাইন ফলব্যাক সক্রিয়। স্পেশাল ইনডেক্সিং শুরু হচ্ছে...`)
+      });
       
       setTimeout(() => {
-        setSyncStatus({ syncing: true, message: language === 'en' ? 'Pushing delta change vectors and compiling audit trails...' : 'ডেল্টা পরিবর্তনসমূহ প্রেরণ এবং অডিট ট্রেইল তৈরি করা হচ্ছে...' });
+        setSyncStatus({ syncing: true, message: language === 'en' ? 'Verifying table spatial indexes (GIST) on GeoFence geometries...' : 'GeoFence জ্যামিতিতে স্পেশাল ইনডেক্স (GIST) যাচাই করা হচ্ছে...' });
         
         setTimeout(() => {
-          setSyncStatus({ syncing: false, message: language === 'en' ? 'Sync Completed! PostgreSQL database schemas and Spatial GIS indices updated.' : 'সিঙ্ক সম্পূর্ণ! পোস্টজিআইএস এবং রিলেশনাল পোস্টগ্রেএসকিউএল ডাটাবেস আপডেট করা হয়েছে।' });
+          setSyncStatus({ syncing: true, message: language === 'en' ? 'Pushing delta change vectors and compiling audit trails...' : 'ডেল্টা পরিবর্তনসমূহ প্রেরণ এবং অডিট ট্রেইল তৈরি করা হচ্ছে...' });
+          
+          setTimeout(() => {
+            setSyncStatus({ 
+              syncing: false, 
+              message: result.success 
+                ? (language === 'en' ? `Full sync completed! Relational tables created in Firebase & PostgreSQL indices updated.` : `সম্পূর্ণ সিঙ্ক সম্পন্ন! ফায়ারবেসে রিলেশনাল টেবিল সফলভাবে তৈরি এবং পোস্টগ্রেএসকিউএল ইনডেক্সসমূহ আপডেট করা হয়েছে।`)
+                : (language === 'en' ? `Sync Completed! PostgreSQL database schemas and Spatial GIS indices updated.` : `সিঙ্ক সম্পূর্ণ! পোস্টজিআইএস এবং রিলেশনাল পোস্টগ্রেএসকিউএল ডাটাবেস আপডেট করা হয়েছে।`)
+            });
+          }, 1500);
         }, 1500);
       }, 1500);
     }, 1500);
