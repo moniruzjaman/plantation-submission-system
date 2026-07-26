@@ -172,37 +172,9 @@ export default function MapComponent({
     if (!mapContainerRef.current) return;
 
     if (allSubmissions) {
-      // Find center
-      let mapCenter: L.LatLngTuple = [23.8103, 90.4125]; // Default Bangladesh
-      let zoomLevel = 7; // national scale
-      
-      const validSites: { lat: number; lng: number }[] = [];
-      allSubmissions.forEach(sub => {
-        sub.sites.forEach(site => {
-          if (site.latitude && site.longitude) {
-            validSites.push({ lat: site.latitude, lng: site.longitude });
-          }
-        });
-      });
-
-      if (validSites.length > 0) {
-        // If they are clustered together (e.g. Kurigram), zoom in
-        const firstSite = validSites[0];
-        if (validSites.every(s => Math.abs(s.lat - firstSite.lat) < 1 && Math.abs(s.lng - firstSite.lng) < 1)) {
-          mapCenter = [firstSite.lat, firstSite.lng];
-          zoomLevel = 13;
-        } else {
-          // Average
-          const sumLat = validSites.reduce((sum, s) => sum + s.lat, 0);
-          const sumLng = validSites.reduce((sum, s) => sum + s.lng, 0);
-          mapCenter = [sumLat / validSites.length, sumLng / validSites.length];
-          zoomLevel = 8;
-        }
-      }
-
       const map = L.map(mapContainerRef.current, {
-        center: mapCenter,
-        zoom: zoomLevel,
+        center: [25.80, 89.63], // Default centered on Kurigram where the bulk of real data resides
+        zoom: 11,
         zoomControl: false,
       });
       mapRef.current = map;
@@ -213,6 +185,30 @@ export default function MapComponent({
       }).addTo(map);
 
       L.control.zoom({ position: 'topright' }).addTo(map);
+
+      const validSites: { lat: number; lng: number }[] = [];
+      allSubmissions.forEach(sub => {
+        sub.sites.forEach(site => {
+          if (site.latitude && site.longitude) {
+            validSites.push({ lat: site.latitude, lng: site.longitude });
+          }
+        });
+      });
+
+      if (validSites.length > 0) {
+        const lats = validSites.map(s => s.lat);
+        const lngs = validSites.map(s => s.lng);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs);
+        const maxLng = Math.max(...lngs);
+        
+        // Fit bounds with comfortable padding so markers near edges are fully visible
+        map.fitBounds([
+          [minLat - 0.02, minLng - 0.02],
+          [maxLat + 0.02, maxLng + 0.02]
+        ]);
+      }
 
       // Render markers for all submissions
       allSubmissions.forEach(sub => {
