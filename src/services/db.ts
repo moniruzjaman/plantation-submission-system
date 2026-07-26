@@ -348,6 +348,189 @@ class IndexedDBService {
         read_at: null,
       } as Notification);
     }
+
+    // 6. Seed Real Submissions from App_Entry sheet (single plant, 5 plants, and orchard)
+    const submissions = await this.getAllItems<Submission>(STORE_SUBMISSIONS);
+    if (submissions.length === 0) {
+      const initialSubmissions: Submission[] = [
+        {
+          submission_id: 'SUB-mrd3fmrjqe6os37',
+          submitted_by_id: 'USR-001',
+          submitted_by_name: 'Mithun Islam',
+          office: 'Savar Upazila Agriculture Extension Office, Dhaka',
+          submitted_at: new Date('2026-07-08T22:56:05').getTime(),
+          status: 'Approved',
+          sites: [
+            {
+              site_id: 'SITE-mrd3fmrjqe6os37',
+              submission_id: 'SUB-mrd3fmrjqe6os37',
+              plantation_type: 'Single Tree',
+              latitude: 25.803363,
+              longitude: 89.638701,
+              radius: null,
+              polygon: null,
+              area: 1,
+              perimeter: 4,
+              centroid: { lat: 25.803363, lng: 89.638701 },
+              address: 'R562, বেলগাছা, মোগলবাসা ইউনিয়ন, কুড়িগ্রাম সদর উপজেলা, কুড়িগ্রাম জেলা, রংপুর বিভাগ, বাংলাদেশ',
+              division: 'রংপুর বিভাগ',
+              district: 'কুড়িগ্রাম',
+              upazila: 'কুড়িগ্রাম সদর',
+              union: 'মোগলবাসা',
+              village: 'বেলগাছা',
+              road: 'R562',
+              postcode: '5600',
+              ndvi: 0.33,
+              carbon_estimate: 1.2,
+              geofence_score: 98,
+              geofence_details: null,
+              plants: [
+                {
+                  plant_id: 'PL-mrd3fmrjqe6os37-1',
+                  site_id: 'SITE-mrd3fmrjqe6os37',
+                  category: 'Fruit',
+                  species: 'Mango (আম)',
+                  variety: 'Local',
+                  plantation_date: '2026-07-01',
+                  seedling_age: '6 months',
+                  quantity: 1,
+                  photos: [],
+                  validation_status: 'Valid'
+                }
+              ],
+              personnel: {
+                site_id: 'SITE-mrd3fmrjqe6os37',
+                planter_name: 'Test',
+                planter_mobile: '01700300040',
+                caretaker_name: 'Test',
+                caretaker_mobile: '01700300040',
+                is_caretaker_same_as_planter: true
+              }
+            }
+          ]
+        },
+        {
+          submission_id: 'SUB-mrd4lahos4sus7',
+          submitted_by_id: 'USR-001',
+          submitted_by_name: 'Mithun Islam',
+          office: 'Savar Upazila Agriculture Extension Office, Dhaka',
+          submitted_at: new Date('2026-07-08T23:28:27').getTime(),
+          status: 'Approved',
+          sites: [
+            {
+              site_id: 'SITE-mrd4lahos4sus7',
+              submission_id: 'SUB-mrd4lahos4sus7',
+              plantation_type: 'Small Plantation',
+              latitude: 25.802903,
+              longitude: 89.637888,
+              radius: 10,
+              polygon: null,
+              area: 314,
+              perimeter: 62.8,
+              centroid: { lat: 25.802903, lng: 89.637888 },
+              address: 'R562, বেলগাছা, মোগলবাসা ইউনিয়ন, কুড়িগ্রাম সদর উপজেলা, কুড়িগ্রাম জেলা, রংপুর বিভাগ, বাংলাদেশ',
+              division: 'রংপুর বিভাগ',
+              district: 'কুড়িগ্রাম',
+              upazila: 'কুড়িগ্রাম সদর',
+              union: 'মোগলবাসা',
+              village: 'বেলগাছা',
+              road: 'R562',
+              postcode: '5600',
+              ndvi: 0.25,
+              carbon_estimate: 4.8,
+              geofence_score: 94,
+              geofence_details: null,
+              plants: [
+                {
+                  plant_id: 'PL-mrd4lahos4sus7-1',
+                  site_id: 'SITE-mrd4lahos4sus7',
+                  category: 'Fruit',
+                  species: 'Mango (আম)',
+                  variety: 'Incentive',
+                  plantation_date: '2026-07-09',
+                  seedling_age: '6 months',
+                  quantity: 5,
+                  photos: [],
+                  validation_status: 'Valid'
+                }
+              ],
+              personnel: {
+                site_id: 'SITE-mrd4lahos4sus7',
+                planter_name: 'মনু মিয়া',
+                planter_mobile: '01748485819',
+                caretaker_name: 'নজরুল ইসলাম',
+                caretaker_mobile: '01765856589',
+                is_caretaker_same_as_planter: false
+              }
+            }
+          ]
+        },
+        {
+          submission_id: 'SUB-mrd3fmrjqe6os3',
+          submitted_by_id: 'USR-001',
+          submitted_by_name: 'Mithun Islam',
+          office: 'Savar Upazila Agriculture Extension Office, Dhaka',
+          submitted_at: new Date('2026-07-08T21:56:07').getTime(),
+          status: 'Approved',
+          sites: [
+            {
+              site_id: 'SITE-mrd3fmrjqe6os3',
+              submission_id: 'SUB-mrd3fmrjqe6os3',
+              plantation_type: 'Orchard / Large Plantation',
+              latitude: 25.830043,
+              longitude: 89.6245,
+              radius: null,
+              polygon: [
+                { lat: 25.8305, lng: 89.6240 },
+                { lat: 25.8305, lng: 89.6250 },
+                { lat: 25.8295, lng: 89.6250 },
+                { lat: 25.8295, lng: 89.6240 }
+              ],
+              area: 10000,
+              perimeter: 400,
+              centroid: { lat: 25.830043, lng: 89.6245 },
+              address: 'হলোখানা, হলোখানা ইউনিয়ন, কুড়িগ্রাম সদর উপজেলা, কুড়িগ্রাম জেলা, রংপুর বিভাগ, বাংলাদেশ',
+              division: 'রংপুর বিভাগ',
+              district: 'কুড়িগ্রাম',
+              upazila: 'কুড়িগ্রাম সদর',
+              union: 'হলোখানা',
+              village: 'হলোখানা',
+              road: 'Holokhana Road',
+              postcode: '5600',
+              ndvi: 0.65,
+              carbon_estimate: 84.5,
+              geofence_score: 97,
+              geofence_details: null,
+              plants: [
+                {
+                  plant_id: 'PL-mrd3fmrjqe6os3-1',
+                  site_id: 'SITE-mrd3fmrjqe6os3',
+                  category: 'Fruit',
+                  species: 'Lemon (লেবু)',
+                  variety: 'Seedless (সিডরেস)',
+                  plantation_date: '2026-06-02',
+                  seedling_age: '9 months',
+                  quantity: 220,
+                  photos: [],
+                  validation_status: 'Valid'
+                }
+              ],
+              personnel: {
+                site_id: 'SITE-mrd3fmrjqe6os3',
+                planter_name: 'মোঃ আমিনুর ইসলাম',
+                planter_mobile: '01723360770',
+                caretaker_name: 'এস এম তরিকুল ইসলাম',
+                caretaker_mobile: '01716026306',
+                is_caretaker_same_as_planter: false
+              }
+            }
+          ]
+        }
+      ];
+      for (const sub of initialSubmissions) {
+        await this.saveItem(STORE_SUBMISSIONS, sub);
+      }
+    }
   }
 }
 

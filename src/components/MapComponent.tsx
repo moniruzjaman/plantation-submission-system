@@ -5,32 +5,34 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { LatLng, PlantationType } from '../types';
+import { LatLng, PlantationType, Submission } from '../types';
 import { Check, AlertTriangle, Info } from 'lucide-react';
 
 interface MapComponentProps {
-  latitude: number;
-  longitude: number;
-  radius: number | null;
-  polygon: LatLng[] | null;
-  plantationType: PlantationType;
-  onChange: (data: {
+  latitude?: number;
+  longitude?: number;
+  radius?: number | null;
+  polygon?: LatLng[] | null;
+  plantationType?: PlantationType;
+  onChange?: (data: {
     latitude: number;
     longitude: number;
     radius: number | null;
     polygon: LatLng[] | null;
   }) => void;
   language?: string;
+  allSubmissions?: Submission[];
 }
 
 export default function MapComponent({
-  latitude,
-  longitude,
-  radius,
-  polygon,
-  plantationType,
-  onChange,
+  latitude = 23.8103,
+  longitude = 90.4125,
+  radius = null,
+  polygon = null,
+  plantationType = 'Single Tree',
+  onChange = () => {},
   language = 'en',
+  allSubmissions,
 }: MapComponentProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -169,6 +171,142 @@ export default function MapComponent({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
+    if (allSubmissions) {
+      // Find center
+      let mapCenter: L.LatLngTuple = [23.8103, 90.4125]; // Default Bangladesh
+      let zoomLevel = 7; // national scale
+      
+      const validSites: { lat: number; lng: number }[] = [];
+      allSubmissions.forEach(sub => {
+        sub.sites.forEach(site => {
+          if (site.latitude && site.longitude) {
+            validSites.push({ lat: site.latitude, lng: site.longitude });
+          }
+        });
+      });
+
+      if (validSites.length > 0) {
+        // If they are clustered together (e.g. Kurigram), zoom in
+        const firstSite = validSites[0];
+        if (validSites.every(s => Math.abs(s.lat - firstSite.lat) < 1 && Math.abs(s.lng - firstSite.lng) < 1)) {
+          mapCenter = [firstSite.lat, firstSite.lng];
+          zoomLevel = 13;
+        } else {
+          // Average
+          const sumLat = validSites.reduce((sum, s) => sum + s.lat, 0);
+          const sumLng = validSites.reduce((sum, s) => sum + s.lng, 0);
+          mapCenter = [sumLat / validSites.length, sumLng / validSites.length];
+          zoomLevel = 8;
+        }
+      }
+
+      const map = L.map(mapContainerRef.current, {
+        center: mapCenter,
+        zoom: zoomLevel,
+        zoomControl: false,
+      });
+      mapRef.current = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors',
+      }).addTo(map);
+
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      // Render markers for all submissions
+      allSubmissions.forEach(sub => {
+        sub.sites.forEach(site => {
+          if (!site.latitude || !site.longitude) return;
+
+          let color = '#2563EB'; // single tree - blue
+          let radiusSize = 8;
+          let typeLabel = language === 'en' ? 'Single Tree' : 'একক বৃক্ষ';
+
+          if (site.plantation_type === 'Small Plantation') {
+            color = '#EA580C'; // small - orange
+            radiusSize = 12;
+            typeLabel = language === 'en' ? 'Small Plantation' : 'আঞ্চলিক ক্ষুদ্র রোপণ';
+          } else if (site.plantation_type === 'Orchard / Large Plantation') {
+            color = '#10B981'; // orchard - emerald
+            radiusSize = 18;
+            typeLabel = language === 'en' ? 'Orchard / Large Plantation' : 'বাগান / বৃহৎ রোপণ';
+          }
+
+          // Total saplings in this site
+          const totalQty = site.plants.reduce((sum, p) => sum + p.quantity, 0);
+          const speciesNames = site.plants.map(p => p.species).join(', ');
+          const farmerName = site.personnel?.planter_name || site.plants[0]?.variety || (language === 'en' ? 'Government land' : 'সরকারি জমি');
+          const officerName = sub.submitted_by_name || (language === 'en' ? 'Field Officer' : 'ফিল্ড অফিসার');
+
+          // Popup content styling matching Anti-Slop Guidelines
+          const statusText = sub.status === 'Approved' ? (language === 'en' ? 'Approved' : 'অনুমোদিত') : (language === 'en' ? 'Pending' : 'যাচাই পেন্ডিং');
+          const statusBadgeClass = sub.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200';
+
+          const popupContent = `
+            <div style="font-family: inherit; font-size: 11px; color: #1e293b; text-align: left; padding: 4px; min-width: 200px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; margin-bottom: 6px;">
+                <span style="font-family: monospace; font-weight: bold; color: #64748b;">ID: ${sub.submission_id.slice(0, 10)}</span>
+                <span style="font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid; background-color: ${sub.status === 'Approved' ? '#f0fdf4' : '#eff6ff'}; color: ${sub.status === 'Approved' ? '#15803d' : '#1d4ed8'}; border-color: ${sub.status === 'Approved' ? '#bbf7d0' : '#bfdbfe'};">${statusText}</span>
+              </div>
+              <h4 style="font-size: 12px; font-weight: 800; color: #065f46; margin: 0 0 6px 0;">${typeLabel}</h4>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div><strong>${language === 'en' ? 'Species' : 'প্রজাতি'}:</strong> ${speciesNames}</div>
+                <div><strong>${language === 'en' ? 'Saplings Count' : 'চারার সংখ্যা'}:</strong> <span style="font-weight: bold; color: #047857;">${totalQty}</span></div>
+                <div><strong>${language === 'en' ? 'Farmer' : 'কৃষক/মালিক'}:</strong> ${farmerName}</div>
+                <div><strong>${language === 'en' ? 'Location' : 'অবস্থান'}:</strong> ${site.village || ''}, ${site.union || ''}, ${site.upazila || ''}</div>
+                <div><strong>${language === 'en' ? 'Officer' : 'রেকর্ডকারী কর্মকর্তা'}:</strong> ${officerName}</div>
+                <div><strong>${language === 'en' ? 'NDVI Index' : 'প্রাথমিক NDVI'}:</strong> <span style="font-family: monospace; font-weight: bold;">${site.ndvi || '0.35'}</span></div>
+              </div>
+            </div>
+          `;
+
+          // Circle marker for beautiful map visuals
+          const circleMarker = L.circleMarker([site.latitude, site.longitude], {
+            radius: radiusSize,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.6,
+            weight: 2,
+          }).addTo(map);
+
+          circleMarker.bindPopup(popupContent);
+
+          // If it's an orchard and has polygon, render polygon outline on hover or click
+          if (site.plantation_type === 'Orchard / Large Plantation' && site.polygon && site.polygon.length > 0) {
+            const leafletCoords = site.polygon.map(pt => [pt.lat, pt.lng] as L.LatLngTuple);
+            const poly = L.polygon(leafletCoords, {
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.15,
+              weight: 2,
+            });
+            circleMarker.on('mouseover', () => {
+              poly.addTo(map);
+            });
+            circleMarker.on('mouseout', () => {
+              poly.remove();
+            });
+          }
+        });
+      });
+
+      const resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => {
+          if (mapRef.current) {
+            map.invalidateSize();
+          }
+        });
+      });
+      resizeObserver.observe(mapContainerRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+        map.remove();
+        mapRef.current = null;
+      };
+    }
+
     // Create Map
     const map = L.map(mapContainerRef.current, {
       center: [latitude, longitude],
@@ -257,10 +395,11 @@ export default function MapComponent({
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [allSubmissions]);
 
   // 3. Keep Center & Marker updated when props change from reverse lookup or manual entry
   useEffect(() => {
+    if (allSubmissions) return;
     if (!mapRef.current || !markerRef.current) return;
 
     const currentMarkerLatLng = markerRef.current.getLatLng();
@@ -268,10 +407,11 @@ export default function MapComponent({
       markerRef.current.setLatLng([latitude, longitude]);
       mapRef.current.setView([latitude, longitude], mapRef.current.getZoom());
     }
-  }, [latitude, longitude]);
+  }, [latitude, longitude, allSubmissions]);
 
   // 4. Update Circle Overlays for Small Plantations (Radius)
   useEffect(() => {
+    if (allSubmissions) return;
     if (!mapRef.current || !markerRef.current) return;
 
     // Clean old circle
@@ -289,10 +429,11 @@ export default function MapComponent({
         weight: 2,
       }).addTo(mapRef.current);
     }
-  }, [latitude, longitude, radius, plantationType]);
+  }, [latitude, longitude, radius, plantationType, allSubmissions]);
 
   // 5. Update Polygon overlays and draw markers with dynamic Vertex Dragging
   useEffect(() => {
+    if (allSubmissions) return;
     const map = mapRef.current;
     if (!map) return;
 

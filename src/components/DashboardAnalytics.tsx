@@ -25,9 +25,183 @@ import {
   TrendingUp, BarChart3, PieChart as PieIcon, Trees, 
   Leaf, ShieldCheck, Compass, Eye, Sparkles 
 } from 'lucide-react';
+import MapComponent from './MapComponent';
 
 // Predefined mock data to pad thin live data or for demonstration
 const SAMPLE_REGIONAL_DATA: Submission[] = [
+  {
+    submission_id: 'SUB-mrd3fmrjqe6os37',
+    submitted_by_id: 'USR-001',
+    submitted_by_name: 'Mithun Islam',
+    office: 'Savar Upazila Agriculture Extension Office, Dhaka',
+    submitted_at: new Date('2026-07-08T22:56:05').getTime(),
+    status: 'Approved',
+    sites: [
+      {
+        site_id: 'SITE-mrd3fmrjqe6os37',
+        submission_id: 'SUB-mrd3fmrjqe6os37',
+        plantation_type: 'Single Tree',
+        latitude: 25.803363,
+        longitude: 89.638701,
+        radius: null,
+        polygon: null,
+        area: 1,
+        perimeter: 4,
+        centroid: { lat: 25.803363, lng: 89.638701 },
+        address: 'R562, বেলগাছা, মোগলবাসা ইউনিয়ন, কুড়িগ্রাম সদর উপজেলা, কুড়িগ্রাম জেলা, রংপুর বিভাগ, বাংলাদেশ',
+        division: 'रंगपुर विभाग',
+        district: 'কুড়িগ্রাম',
+        upazila: 'কুড়িগ্রাম সদর',
+        union: 'মোগলবাসা',
+        village: 'বেলগাছা',
+        road: 'R562',
+        postcode: '5600',
+        ndvi: 0.33,
+        carbon_estimate: 1.2,
+        geofence_score: 98,
+        geofence_details: null,
+        plants: [
+          {
+            plant_id: 'PL-mrd3fmrjqe6os37-1',
+            site_id: 'SITE-mrd3fmrjqe6os37',
+            category: 'Fruit',
+            species: 'Mango (আম)',
+            variety: 'Local',
+            plantation_date: '2026-07-01',
+            seedling_age: '6 months',
+            quantity: 1,
+            photos: [],
+            validation_status: 'Valid'
+          }
+        ],
+        personnel: {
+          site_id: 'SITE-mrd3fmrjqe6os37',
+          planter_name: 'Test',
+          planter_mobile: '01700300040',
+          caretaker_name: 'Test',
+          caretaker_mobile: '01700300040',
+          is_caretaker_same_as_planter: true
+        }
+      }
+    ]
+  },
+  {
+    submission_id: 'SUB-mrd4lahos4sus7',
+    submitted_by_id: 'USR-001',
+    submitted_by_name: 'Mithun Islam',
+    office: 'Savar Upazila Agriculture Extension Office, Dhaka',
+    submitted_at: new Date('2026-07-08T23:28:27').getTime(),
+    status: 'Approved',
+    sites: [
+      {
+        site_id: 'SITE-mrd4lahos4sus7',
+        submission_id: 'SUB-mrd4lahos4sus7',
+        plantation_type: 'Small Plantation',
+        latitude: 25.802903,
+        longitude: 89.637888,
+        radius: 10,
+        polygon: null,
+        area: 314,
+        perimeter: 62.8,
+        centroid: { lat: 25.802903, lng: 89.637888 },
+        address: 'R562, বেলগাছা, মোগলবাসা ইউনিয়ন, কুড়িগ্রাম সদর উপজেলা, কুড়িগ্রাম জেলা, রংপুর বিভাগ, বাংলাদেশ',
+        division: 'রংপুর বিভাগ',
+        district: 'কুড়িগ্রাম',
+        upazila: 'কুড়িগ্রাম সদর',
+        union: 'মোগলবাসা',
+        village: 'বেলগাছা',
+        road: 'R562',
+        postcode: '5600',
+        ndvi: 0.25,
+        carbon_estimate: 4.8,
+        geofence_score: 94,
+        geofence_details: null,
+        plants: [
+          {
+            plant_id: 'PL-mrd4lahos4sus7-1',
+            site_id: 'SITE-mrd4lahos4sus7',
+            category: 'Fruit',
+            species: 'Mango (আম)',
+            variety: 'Incentive',
+            plantation_date: '2026-07-09',
+            seedling_age: '6 months',
+            quantity: 5,
+            photos: [],
+            validation_status: 'Valid'
+          }
+        ],
+        personnel: {
+          site_id: 'SITE-mrd4lahos4sus7',
+          planter_name: 'মনু মিয়া',
+          planter_mobile: '01748485819',
+          caretaker_name: 'নজরুল ইসলাম',
+          caretaker_mobile: '01765856589',
+          is_caretaker_same_as_planter: false
+        }
+      }
+    ]
+  },
+  {
+    submission_id: 'SUB-mrd3fmrjqe6os3',
+    submitted_by_id: 'USR-001',
+    submitted_by_name: 'Mithun Islam',
+    office: 'Savar Upazila Agriculture Extension Office, Dhaka',
+    submitted_at: new Date('2026-07-08T21:56:07').getTime(),
+    status: 'Approved',
+    sites: [
+      {
+        site_id: 'SITE-mrd3fmrjqe6os3',
+        submission_id: 'SUB-mrd3fmrjqe6os3',
+        plantation_type: 'Orchard / Large Plantation',
+        latitude: 25.830043,
+        longitude: 89.6245,
+        radius: null,
+        polygon: [
+          { lat: 25.8305, lng: 89.6240 },
+          { lat: 25.8305, lng: 89.6250 },
+          { lat: 25.8295, lng: 89.6250 },
+          { lat: 25.8295, lng: 89.6240 }
+        ],
+        area: 10000,
+        perimeter: 400,
+        centroid: { lat: 25.830043, lng: 89.6245 },
+        address: 'হলোখানা, হলোখানা ইউনিয়ন, কুড়িগ্রাম সদর উপজেলা, কুড়িগ্রাম জেলা, রংপুর বিভাগ, বাংলাদেশ',
+        division: 'রংপুর বিভাগ',
+        district: 'কুড়িগ্রাম',
+        upazila: 'কুড়িগ্রাম সদর',
+        union: 'হলোখানা',
+        village: 'হলোখানা',
+        road: 'Holokhana Road',
+        postcode: '5600',
+        ndvi: 0.65,
+        carbon_estimate: 84.5,
+        geofence_score: 97,
+        geofence_details: null,
+        plants: [
+          {
+            plant_id: 'PL-mrd3fmrjqe6os3-1',
+            site_id: 'SITE-mrd3fmrjqe6os3',
+            category: 'Fruit',
+            species: 'Lemon (লেবু)',
+            variety: 'Seedless (সিডরেস)',
+            plantation_date: '2026-06-02',
+            seedling_age: '9 months',
+            quantity: 220,
+            photos: [],
+            validation_status: 'Valid'
+          }
+        ],
+        personnel: {
+          site_id: 'SITE-mrd3fmrjqe6os3',
+          planter_name: 'মোঃ আমিনুর ইসলাম',
+          planter_mobile: '01723360770',
+          caretaker_name: 'এস এম তরিকুল ইসলাম',
+          caretaker_mobile: '01716026306',
+          is_caretaker_same_as_planter: false
+        }
+      }
+    ]
+  },
   {
     submission_id: 'SUB-881204',
     submitted_by_id: 'FSO-2026-3814',
@@ -527,6 +701,47 @@ export default function DashboardAnalytics() {
           <span className="text-[10px] text-neutral-400 mt-0.5 leading-snug">
             {language === 'en' ? "Avg. satellite match index" : "গড় স্যাটেলাইট মিল সূচক"}
           </span>
+        </div>
+      </div>
+
+      {/* GEOGRAPHIC VISUALIZATION MAP */}
+      <div className="p-5 bg-white border border-neutral-200 rounded-xl shadow-sm flex flex-col gap-4 text-left animate-fadeIn">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-neutral-100 pb-2">
+          <div className="flex items-center gap-2">
+            <Compass className="h-4.5 w-4.5 text-emerald-700 animate-spin-slow" />
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-bold text-neutral-800 uppercase tracking-wide">
+                {language === 'en' ? "DAE GIS Forestry Recording & Spatial Distribution Map" : "ডিএই জিআইএস বনায়ন রেকর্ড ও স্থানিক বন্টন মানচিত্র"}
+              </span>
+              <span className="text-[10px] text-neutral-400">
+                {language === 'en' 
+                  ? "Interactive spatial layout of single trees, small plantations, and orchards" 
+                  : "একক বৃক্ষ, ক্ষুদ্র রোপণ এবং বাগানের স্থানিক বন্টনের ইন্টারঅ্যাক্টিভ মানচিত্র"}
+              </span>
+            </div>
+          </div>
+          {/* Legend indicator */}
+          <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-neutral-600">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#2563EB]" />
+              <span>{language === 'en' ? "Single Tree (1)" : "একক বৃক্ষ (১)"}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#EA580C]" />
+              <span>{language === 'en' ? "Small Plantation (5)" : "ক্ষুদ্র রোপণ (৫)"}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
+              <span>{language === 'en' ? "Orchard / Large (>20)" : "বাগান / বৃহৎ (>২০)"}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-96 w-full relative rounded-xl border border-neutral-200 overflow-hidden bg-neutral-50 shadow-inner z-0">
+          <MapComponent
+            allSubmissions={submissionsToUse}
+            language={language}
+          />
         </div>
       </div>
 
