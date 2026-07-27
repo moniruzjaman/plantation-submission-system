@@ -8,6 +8,68 @@ import L from 'leaflet';
 import { LatLng, PlantationType, Submission } from '../types';
 import { Check, AlertTriangle, Info } from 'lucide-react';
 
+// --- Defensive Leaflet Patches to prevent 'Cannot read properties of undefined (reading _leaflet_pos)' ---
+if (typeof window !== 'undefined' && L) {
+  const anyL = L as any;
+  
+  // 1. Patch L.DomUtil.getPosition safely
+  if (anyL.DomUtil) {
+    const originalGetPosition = anyL.DomUtil.getPosition;
+    if (originalGetPosition) {
+      anyL.DomUtil.getPosition = function (el: any) {
+        if (!el) {
+          return L.point(0, 0);
+        }
+        try {
+          return originalGetPosition(el) || L.point(0, 0);
+        } catch (e) {
+          return L.point(0, 0);
+        }
+      };
+    }
+
+    // 2. Patch L.DomUtil.setPosition safely
+    const originalSetPosition = anyL.DomUtil.setPosition;
+    if (originalSetPosition) {
+      anyL.DomUtil.setPosition = function (el: any, point: any) {
+        if (!el) return;
+        try {
+          originalSetPosition(el, point);
+        } catch (e) {
+          // Safe catch-all
+        }
+      };
+    }
+  }
+
+  // 3. Patch L.Draggable.prototype._onDrag and _onUp safely
+  if (anyL.Draggable && anyL.Draggable.prototype) {
+    const originalOnDrag = anyL.Draggable.prototype._onDrag;
+    if (originalOnDrag) {
+      anyL.Draggable.prototype._onDrag = function (e: any) {
+        if (!this._element) return;
+        try {
+          originalOnDrag.call(this, e);
+        } catch (err) {
+          console.warn('Defended L.Draggable._onDrag error', err);
+        }
+      };
+    }
+
+    const originalOnUp = anyL.Draggable.prototype._onUp;
+    if (originalOnUp) {
+      anyL.Draggable.prototype._onUp = function (e: any) {
+        if (!this._element) return;
+        try {
+          originalOnUp.call(this, e);
+        } catch (err) {
+          console.warn('Defended L.Draggable._onUp error', err);
+        }
+      };
+    }
+  }
+}
+
 interface MapComponentProps {
   latitude?: number;
   longitude?: number;
@@ -40,6 +102,22 @@ export default function MapComponent({
   const circleRef = useRef<L.Circle | null>(null);
   const polygonRef = useRef<L.Polygon | null>(null);
   const tempMarkersRef = useRef<L.Marker[]>([]);
+  const lastSelfIntersectsRef = useRef<boolean | null>(null);
+
+  const updateMarkerIconColor = (m: L.Marker, isIntersecting: boolean) => {
+    const el = m.getElement();
+    if (!el) return;
+    const innerDiv = el.querySelector('div');
+    if (innerDiv) {
+      if (isIntersecting) {
+        innerDiv.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        innerDiv.classList.add('bg-red-500', 'hover:bg-red-600');
+      } else {
+        innerDiv.classList.remove('bg-red-500', 'hover:bg-red-600');
+        innerDiv.classList.add('bg-blue-600', 'hover:bg-blue-500');
+      }
+    }
+  };
 
   const [drawNodes, setDrawNodes] = useState<LatLng[]>(polygon || []);
   const [liveStats, setLiveStats] = useState<{
@@ -313,12 +391,22 @@ export default function MapComponent({
           polygonRef.current = null;
         }
         if (markerRef.current) {
+          try {
+            markerRef.current.dragging?.disable();
+          } catch (err) {
+            console.warn('Failed to disable dragging', err);
+          }
           if (map.hasLayer(markerRef.current)) {
             markerRef.current.remove();
           }
           markerRef.current = null;
         }
         tempMarkersRef.current.forEach((m) => {
+          try {
+            m.dragging?.disable();
+          } catch (err) {
+            console.warn('Failed to disable dragging', err);
+          }
           if (map.hasLayer(m)) {
             m.remove();
           }
@@ -371,9 +459,20 @@ export default function MapComponent({
     }).addTo(map);
     markerRef.current = marker;
 
+    // Track active dragging to prevent resetting its DOM properties/state during drag
+    marker.on('dragstart', () => {
+      (marker as any)._isDraggingNow = true;
+    });
+
     // Handle marker drag end with safe event loop deferral to let Leaflet cleanly complete the drag lifecycle
     marker.on('dragend', () => {
       const pos = marker.getLatLng();
+      (marker as any)._isDraggingNow = false;
+      (marker as any)._justDragged = true;
+      setTimeout(() => {
+        (marker as any)._justDragged = false;
+      }, 100);
+
       setTimeout(() => {
         if (mapRef.current && markerRef.current && mapRef.current.hasLayer(markerRef.current)) {
           onChange({
@@ -434,12 +533,22 @@ export default function MapComponent({
         polygonRef.current = null;
       }
       if (markerRef.current) {
+        try {
+          markerRef.current.dragging?.disable();
+        } catch (err) {
+          console.warn('Failed to disable dragging', err);
+        }
         if (map.hasLayer(markerRef.current)) {
           markerRef.current.remove();
         }
         markerRef.current = null;
       }
       tempMarkersRef.current.forEach((m) => {
+        try {
+          m.dragging?.disable();
+        } catch (err) {
+          console.warn('Failed to disable dragging', err);
+        }
         if (map.hasLayer(m)) {
           m.remove();
         }
@@ -457,9 +566,10 @@ export default function MapComponent({
     const map = mapRef.current;
     const marker = markerRef.current;
     if (!map || !marker || !map.hasLayer(marker)) return;
+    if ((marker as any)._isDraggingNow || (marker as any)._justDragged) return;
 
     const currentMarkerLatLng = marker.getLatLng();
-    if (currentMarkerLatLng.lat !== latitude || currentMarkerLatLng.lng !== longitude) {
+    if (Math.abs(currentMarkerLatLng.lat - latitude) > 0.0000001 || Math.abs(currentMarkerLatLng.lng - longitude) > 0.0000001) {
       marker.setLatLng([latitude, longitude]);
       map.setView([latitude, longitude], map.getZoom());
     }
@@ -505,38 +615,86 @@ export default function MapComponent({
     const map = mapRef.current;
     if (!map) return;
 
-    // Clean old polygon
-    if (polygonRef.current) {
-      if (map.hasLayer(polygonRef.current)) {
-        polygonRef.current.remove();
-      }
-      polygonRef.current = null;
-    }
-
-    // Clean temporary node markers
-    tempMarkersRef.current.forEach((m) => {
-      if (map.hasLayer(m)) {
-        m.remove();
-      }
-    });
-    tempMarkersRef.current = [];
+    const isOrchard = plantationType === 'Orchard / Large Plantation';
+    const hasPolygon = polygon && polygon.length > 0;
 
     setDrawNodes(polygon || []);
     setLiveStats(calculateLiveStats(polygon || []));
 
-    if (plantationType === 'Orchard / Large Plantation' && polygon && polygon.length > 0) {
-      const leafletCoords = polygon.map((pt) => [pt.lat, pt.lng] as L.LatLngTuple);
+    if (!isOrchard || !hasPolygon) {
+      // Clean up everything if not orchard or no polygon
+      if (polygonRef.current) {
+        if (map.hasLayer(polygonRef.current)) {
+          polygonRef.current.remove();
+        }
+        polygonRef.current = null;
+      }
       
+      const oldMarkers = [...tempMarkersRef.current];
+      tempMarkersRef.current = [];
+      setTimeout(() => {
+        const currentMap = mapRef.current;
+        if (currentMap) {
+          oldMarkers.forEach((m) => {
+            try {
+              m.dragging?.disable();
+            } catch (err) {
+              console.warn('Failed to disable dragging', err);
+            }
+            if (currentMap.hasLayer(m)) {
+              currentMap.removeLayer(m);
+            }
+          });
+        }
+      }, 0);
+      return;
+    }
+
+    // Orchard and Has Polygon is true here
+    const leafletCoords = polygon.map((pt) => [pt.lat, pt.lng] as L.LatLngTuple);
+    const selfIntersects = checkSelfIntersection(polygon);
+    const polyColor = selfIntersects ? '#EF4444' : '#2563EB';
+
+    // 5a. Create or Update Polygon Overlay
+    if (!polygonRef.current) {
       polygonRef.current = L.polygon(leafletCoords, {
-        color: checkSelfIntersection(polygon) ? '#EF4444' : '#2563EB', // red if intersects, blue if valid
-        fillColor: checkSelfIntersection(polygon) ? '#EF4444' : '#2563EB',
+        color: polyColor,
+        fillColor: polyColor,
         fillOpacity: 0.2,
         weight: 3,
       }).addTo(map);
+    } else {
+      polygonRef.current.setLatLngs(leafletCoords);
+      polygonRef.current.setStyle({
+        color: polyColor,
+        fillColor: polyColor,
+      });
+    }
 
-      // Render draggable nodes at vertex points
+    // 5b. Create or Update Draggable Markers
+    if (tempMarkersRef.current.length !== polygon.length) {
+      // Recreate all markers because length changed (e.g. node added/removed)
+      const oldMarkers = [...tempMarkersRef.current];
+      tempMarkersRef.current = [];
+
+      setTimeout(() => {
+        const currentMap = mapRef.current;
+        if (currentMap) {
+          oldMarkers.forEach((m) => {
+            try {
+              m.dragging?.disable();
+            } catch (err) {
+              console.warn('Failed to disable dragging', err);
+            }
+            if (currentMap.hasLayer(m)) {
+              currentMap.removeLayer(m);
+            }
+          });
+        }
+      }, 0);
+
       polygon.forEach((pt, index) => {
-        const isIntersectionColor = checkSelfIntersection(polygon) ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-500';
+        const isIntersectionColor = selfIntersects ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-500';
         const dotIcon = L.divIcon({
           className: 'vertex-dot-icon',
           html: `
@@ -553,13 +711,18 @@ export default function MapComponent({
           icon: dotIcon,
         }).addTo(map);
 
+        // Track active dragging to prevent resetting its DOM properties/state during drag
+        m.on('dragstart', () => {
+          (m as any)._isDraggingNow = true;
+        });
+
         // Handle vertex dragging for real-time visual path rendering and live stats calculations
         m.on('drag', (e: L.LeafletEvent) => {
           const target = e.target as L.Marker;
           const pos = target.getLatLng();
           
-          // Construct updated polygon node array on-the-fly
-          const tempNodes = (polygon || []).map((node, idx) => 
+          // Construct updated polygon node array on-the-fly using the latest stable drawNodesRef.current
+          const tempNodes = (drawNodesRef.current || []).map((node, idx) => 
             idx === index 
               ? { lat: parseFloat(pos.lat.toFixed(7)), lng: parseFloat(pos.lng.toFixed(7)) }
               : node
@@ -576,14 +739,24 @@ export default function MapComponent({
               fillColor: tempStats.selfIntersects ? '#EF4444' : '#2563EB',
             });
           }
+
+          // Dynamically adjust color classes on existing markers instead of reconstructing icons
+          tempMarkersRef.current.forEach((marker) => {
+            updateMarkerIconColor(marker, tempStats.selfIntersects);
+          });
         });
 
         // Trigger parent change only on drag end with event loop deferral to prevent interrupting/cancelling active dragging gestures
         m.on('dragend', (e: L.LeafletEvent) => {
           const target = e.target as L.Marker;
           const pos = target.getLatLng();
+          (m as any)._isDraggingNow = false;
+          (m as any)._justDragged = true;
+          setTimeout(() => {
+            (m as any)._justDragged = false;
+          }, 100);
           
-          const nextPolygon = [...(polygon || [])];
+          const nextPolygon = [...(drawNodesRef.current || [])];
           nextPolygon[index] = {
             lat: parseFloat(pos.lat.toFixed(7)),
             lng: parseFloat(pos.lng.toFixed(7)),
@@ -606,22 +779,25 @@ export default function MapComponent({
 
         tempMarkersRef.current.push(m);
       });
-    }
+    } else {
+      // Length is same, update marker positions and colors directly and safely without recreating DOM elements
+      polygon.forEach((pt, index) => {
+        const m = tempMarkersRef.current[index];
+        if (m) {
+          if ((m as any)._isDraggingNow || (m as any)._justDragged) return; // skip updating the node actively being dragged or just dragged
 
-    return () => {
-      if (polygonRef.current) {
-        if (mapRef.current && mapRef.current.hasLayer(polygonRef.current)) {
-          polygonRef.current.remove();
-        }
-        polygonRef.current = null;
-      }
-      tempMarkersRef.current.forEach((m) => {
-        if (mapRef.current && mapRef.current.hasLayer(m)) {
-          m.remove();
+          const curLatLng = m.getLatLng();
+          if (Math.abs(curLatLng.lat - pt.lat) > 0.0000001 || Math.abs(curLatLng.lng - pt.lng) > 0.0000001) {
+            m.setLatLng([pt.lat, pt.lng]);
+          }
+
+          // Safely update color without setIcon to prevent breaking active drag states
+          updateMarkerIconColor(m, selfIntersects);
         }
       });
-      tempMarkersRef.current = [];
-    };
+    }
+
+    lastSelfIntersectsRef.current = selfIntersects;
   }, [polygon, plantationType]);
 
   const clearPolygon = () => {
